@@ -1,4 +1,4 @@
-export const playSoundBrowserHack = async () => {
+export const ProducerSoundBrowserForce = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({audio: true});
     const audioTrack = stream.getAudioTracks()[0];
     audioTrack.enabled = false;

@@ -1,5 +1,5 @@
 import Cookies from 'universal-cookie';
-import {DEVICES_COOKIE, USER_COOKIE} from "../constants";
+import {DEVICES_COOKIE, USER_COOKIE} from "../constants/CookieConfig";
 
 const cookies = new Cookies();
 

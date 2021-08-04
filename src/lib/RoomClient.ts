@@ -2,28 +2,27 @@ import * as mediasoupClient from 'mediasoup-client';
 import {detectDevice, Device, types} from 'mediasoup-client';
 import {StrictEventEmitter} from 'strict-event-emitter';
 import {Consumer} from "mediasoup-client/lib/Consumer";
+import {BuiltinHandlerName} from "mediasoup-client/lib/Device";
+import {RtpCapabilities} from "mediasoup-client/lib/RtpParameters";
+import {TransportOptions} from "mediasoup-client/lib/Transport";
+import {Producer} from "mediasoup-client/lib/Producer";
+import {io} from "socket.io-client";
+import {DataConsumer} from "mediasoup-client/lib/DataConsumer";
+import {RoomEventsMap} from "../models/RoomClientEventsMap";
+import {PromiseSocket} from "../utils/socket.io-promise";
+import {DeviceStream, Resolution, RoomClientConfig, roomConfigDefault} from "../models/RoomClientConfig";
+import {Peer, peerEventNames} from "../models/Peer";
+import {ProducerSoundBrowserForce, uuidv4} from "../utils/webRTCUtil";
+import {RoomClientSignal} from "../models/RoomClientSignal";
+import {RoomClientNotification} from "../models/RoomClintNotification";
 import {
     PC_PROPRIETARY_CONSTRAINTS,
     VIDEO_CONSTRAINS,
-    WEB_RTC_CONFIG,
     WEBCAM_KSVC_ENCODINGS,
     WEBCAM_SIMULCAST_ENCODINGS
-} from "./constants";
-import {BuiltinHandlerName} from "mediasoup-client/lib/Device";
-import {RtpCapabilities} from "mediasoup-client/lib/RtpParameters";
-import {playSoundBrowserHack, uuidv4} from "./utils/webRTCUtil";
-import {TransportOptions} from "mediasoup-client/lib/Transport";
-import {Producer} from "mediasoup-client/lib/Producer";
-import {Peer, peerEventNames} from "./models/Peer";
-import {io} from "socket.io-client";
-import {DataConsumer} from "mediasoup-client/lib/DataConsumer";
-import {DeviceStream, Resolution, RoomClientConfig, roomConfigDefault} from "./models/RoomClientConfig";
-import {RoomEventsMap} from "./models/RoomClientEventsMap";
-import {RoomClientSignal} from "./models/RoomClientSignal";
-import {RoomClientNotification} from "./models/RoomClintNotification";
-import {roomSignalMethods} from "./models/RoomSignal";
-import {promise, PromiseSocket} from "./socket.io-promise";
-import {getDevices} from "./utils/cookieStore";
+} from "../constants/videoConfig";
+import {roomSignalMethods} from "../models/RoomSignal";
+import {getDevices} from "../utils/cookieStore";
 
 
 class RoomClient extends StrictEventEmitter<RoomEventsMap> {
@@ -63,7 +62,6 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
     shareProducer? = Producer;
     shareProducerLoading = false;
 
-    private iceServers = WEB_RTC_CONFIG.iceServers;
     private activeSpeakerId?: string;
 
     // CONFIGS
@@ -191,7 +189,7 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
         });
 
         this.socket.on('notification', (res: RoomClientNotification) => {
-            // console.log('socket.io.on.notification', res);
+            console.debug('socket.io.on.notification');
             this.handleNotification(res);
         });
     }
@@ -659,7 +657,7 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
 
 
             await this.mediasoupDevice.load({routerRtpCapabilities});
-            await playSoundBrowserHack()
+            await ProducerSoundBrowserForce()
 
             if (this.produce) {
                 const transportOptions = await this.socket.emitAsync<TransportOptions>(peerEventNames.signal,
@@ -771,7 +769,6 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
             }
 
             // SET MEDIA C
-
             const peers: Peer[] =
                 await this.socket.emitAsync<Peer[]>(peerEventNames.signal, {
                     method: roomSignalMethods.join,

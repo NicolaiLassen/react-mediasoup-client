@@ -1,6 +1,6 @@
 import {useEffect, useState} from "react";
-import RoomClient from "../RoomClient";
 import {RoomClientConfig} from "../models/RoomClientConfig";
+import RoomClient from "../lib/RoomClient";
 
 interface useRoomProps {
     url: string;
@@ -9,7 +9,7 @@ interface useRoomProps {
     config: RoomClientConfig;
 }
 
-const useRoom = ({}) => {
+const useRoom = ({url, roomId, peerId, config}: useRoomProps) => {
 
     const [room, setRoom] = useState(new RoomClient('http://rtc.innosocial.dk', 'innoTest123'));
 

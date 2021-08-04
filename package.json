@@ -2,30 +2,21 @@
   "name": "react-mediasoup-client",
   "version": "0.1.0",
   "private": true,
-  "repository": "git://github.com/NicolaiLassen/react-mediasoup-client.git",
-  "dependencies": {
-    "@testing-library/jest-dom": "^5.11.4",
-    "@testing-library/react": "^11.1.0",
-    "@testing-library/user-event": "^12.1.10",
-    "@types/jest": "^26.0.15",
-    "@types/node": "^12.0.0",
-    "@types/react": "^17.0.0",
-    "@types/react-dom": "^17.0.0",
-    "mediasoup-client": "^3.6.29",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
-    "react-scripts": "4.0.3",
-    "typescript": "^4.1.2",
-    "web-vitals": "^1.0.1",
-    "socket.io-client": "4.0.0",
-    "strict-event-emitter": "^0.2.0",
-    "universal-cookie": "^4.0.4"
+  "author": "Nicolai M. T. Lassen",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MichaelGuldborg/redux-rest.git"
   },
+  "main": "dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "prepare": "npm run build",
+    "test": "cd test && npm run test"
   },
   "eslintConfig": {
     "extends": [
@@ -45,5 +36,40 @@
       "last 1 safari version"
     ]
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@testing-library/jest-dom": "^5.11.4",
+    "@testing-library/react": "^11.1.0",
+    "@testing-library/user-event": "^12.1.10",
+    "@types/jest": "^26.0.15",
+    "@types/node": "^12.0.0",
+    "@types/react": "^17.0.0",
+    "@types/react-dom": "^17.0.0",
+    "mediasoup-client": "^3.6.29",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "react-scripts": "4.0.3",
+    "typescript": "^4.1.2",
+    "web-vitals": "^1.0.1",
+    "socket.io-client": "4.0.0",
+    "strict-event-emitter": "^0.2.0",
+    "universal-cookie": "^4.0.4"
+  },
+  "peerDependencies": {
+    "@testing-library/jest-dom": "^5.11.4",
+    "@testing-library/react": "^11.1.0",
+    "@testing-library/user-event": "^12.1.10",
+    "@types/jest": "^26.0.15",
+    "@types/node": "^12.0.0",
+    "@types/react": "^17.0.0",
+    "@types/react-dom": "^17.0.0",
+    "mediasoup-client": "^3.6.29",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "react-scripts": "4.0.3",
+    "typescript": "^4.1.2",
+    "web-vitals": "^1.0.1",
+    "socket.io-client": "4.0.0",
+    "strict-event-emitter": "^0.2.0",
+    "universal-cookie": "^4.0.4"
+  }
 }

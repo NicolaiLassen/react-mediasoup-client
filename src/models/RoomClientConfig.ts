@@ -1,4 +1,5 @@
 import {BuiltinHandlerName} from "mediasoup-client/lib/Device";
+import {uuidv4} from "../utils/webRTCUtil";
 
 // qvga:  320 × 240 , vga: 640 x 480, hd: 1280x720
 export type Resolution = 'qvga' | 'vga' | 'hd';
@@ -40,7 +41,7 @@ export const roomConfigDefault: RoomClientConfig = {
     useDataChannel: false,
     useSharingSimulcast: false,
     useSimulcast: true,
-    displayName: "",
+    displayName: uuidv4(),
     datachannel: "",
     resolution: 'hd',
     muted: false,
