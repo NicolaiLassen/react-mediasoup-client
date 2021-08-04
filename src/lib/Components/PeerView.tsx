@@ -1,13 +1,13 @@
-import React, {useEffect, useRef, useState} from "react";
+import React, {useEffect, useRef} from "react";
 
-interface PeerView {
+interface PeerViewProps {
     isMe: boolean;
     audioMuted?: boolean;
     audioTrack?: MediaStreamTrack | null;
     videoTrack?: MediaStreamTrack | null;
 }
 
-const PeerView: React.FC<PeerView> = (
+const PeerView: React.FC<PeerViewProps> = (
     {
         isMe,
         audioMuted = false,
@@ -15,13 +15,11 @@ const PeerView: React.FC<PeerView> = (
         videoTrack
     }) => {
 
-    const [videoState, setVideoState] = useState<boolean>();
+    // const [videoState, setVideoState] = useState<boolean>();
     const audioElem = useRef<HTMLAudioElement>(null);
     const videoElem = useRef<HTMLVideoElement>(null);
 
     useEffect(() => {
-
-        console.log("test")
 
         if (audioTrack) {
             console.log("audioTrack")
@@ -43,7 +41,7 @@ const PeerView: React.FC<PeerView> = (
             stream.addTrack(videoTrack);
             videoElem.current.srcObject = stream;
 
-            videoElem.current.oncanplay = () => setVideoState(true);
+            // videoElem.current.oncanplay = () => setVideoState(true);
 
             videoElem.current.onplay = () => {
                 if (!audioElem.current)
@@ -53,7 +51,7 @@ const PeerView: React.FC<PeerView> = (
                     .catch((error) => console.log('audioElem.play() failed:%o', error));
             };
 
-            videoElem.current.onpause = () => setVideoState(true);
+            // videoElem.current.onpause = () => setVideoState(true);
 
             videoElem.current.play()
                 .catch((error) => console.log('audioElem.play() failed:%o', error));
@@ -64,10 +62,11 @@ const PeerView: React.FC<PeerView> = (
     }, [audioTrack, videoTrack])
 
     return (
-        <div style={{background: 'black', width: 200, height: 200}}>
+        <div style={{background: 'black', width: 400, height: 400}}>
             <video
                 ref={videoElem}
                 autoPlay
+                style={{transform: isMe ? 'scaleX(-1)' : '', width: 400, height: 400}}
                 playsInline
                 muted
                 controls={false}

@@ -1,15 +1,7 @@
+import * as mediasoupClient from 'mediasoup-client';
 import {detectDevice, Device, types} from 'mediasoup-client';
 import {StrictEventEmitter} from 'strict-event-emitter';
 import {Consumer} from "mediasoup-client/lib/Consumer";
-import {
-    ActiveSpeakerResponse,
-    DeviceStream,
-    MeState,
-    Resolution,
-    RoomClientConfig,
-    RoomClientSignal,
-    RoomEventsMap
-} from "./models/RoomClient";
 import {
     PC_PROPRIETARY_CONSTRAINTS,
     VIDEO_CONSTRAINS,
@@ -22,58 +14,43 @@ import {RtpCapabilities} from "mediasoup-client/lib/RtpParameters";
 import {playSoundBrowserHack, uuidv4} from "./utils/webRTCUtil";
 import {TransportOptions} from "mediasoup-client/lib/Transport";
 import {Producer} from "mediasoup-client/lib/Producer";
-import {Peer} from "./models/Peer";
-import {io, Socket} from "socket.io-client";
+import {Peer, peerEventNames} from "./models/Peer";
+import {io} from "socket.io-client";
 import {DataConsumer} from "mediasoup-client/lib/DataConsumer";
+import {DeviceStream, Resolution, RoomClientConfig, roomConfigDefault} from "./models/RoomClientConfig";
+import {RoomEventsMap} from "./models/RoomClientEventsMap";
+import {RoomClientSignal} from "./models/RoomClientSignal";
+import {RoomClientNotification} from "./models/RoomClintNotification";
+import {roomSignalMethods} from "./models/RoomSignal";
+import {promise, PromiseSocket} from "./socket.io-promise";
 import {getDevices} from "./utils/cookieStore";
 
-const roomConfigDefault: RoomClientConfig = {
-    produce: true,
-    consume: false,
-    forceH264: false,
-    forceTcp: false,
-    forceVP9: false,
-    svc: false,
-    useDataChannel: false,
-    useSharingSimulcast: false,
-    useSimulcast: false,
-    displayName: "",
-    datachannel: "",
-    resolution: 'hd',
-    muted: false,
-    webcamOnly: false,
-    audioOnly: false,
-    reconnectionTimeout: 1000
-}
 
 class RoomClient extends StrictEventEmitter<RoomEventsMap> {
 
     readonly roomId: string;
     readonly peerId: string;
     readonly url: string;
-    readonly nsp: string;
+    readonly path: string;
 
-    private socket?: Socket;
+    private socket?: PromiseSocket;
     private sendTransport: types.Transport | null = null;
     private recvTransport: types.Transport | null = null;
     private readonly webcam: DeviceStream;
     private webcams = new Map<string, MediaDeviceInfo>();
 
-    private mediaDevice?: Device;
-    private producers: Map<string, Producer> = new Map<string, Producer>()
+    private mediasoupDevice?: Device;
     private displayName?: string
 
-    // TODO: Peer model
-    private peerMap: Map<string, Peer> = new Map<string, Peer>()
+    peers: Map<string, Peer> = new Map()
 
     private muted;
     private joined = false;
     private closed = false;
     private externalVideo = false;
 
-    private me: MeState = {}
-
-    private consumers = new Map<string, Consumer>();
+    producers: Map<string, Producer> = new Map()
+    consumers: Map<string, Consumer> = new Map();
     private dataConsumers = new Map<string, DataConsumer>();
     private readonly handlerName?: BuiltinHandlerName;
 
@@ -110,7 +87,7 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
                 roomId: string,
                 peerId?: string,
                 config?: Partial<RoomClientConfig>,
-                nsp: string = 'socket.io',
+                path = 'server',
     ) {
         super();
         const defaultConfig: RoomClientConfig = {
@@ -121,7 +98,7 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
         this.url = url;
         this.roomId = roomId;
         this.peerId = peerId ?? uuidv4();
-        this.nsp = nsp;
+        this.path = path;
 
         this.displayName = defaultConfig.displayName;
         this.handlerName = defaultConfig.handlerName
@@ -148,6 +125,7 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
         this.reconnectionTimeout = defaultConfig.reconnectionTimeout;
     }
 
+    //
     close() {
         if (this.closed)
             return;
@@ -159,6 +137,12 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
     }
 
     async join() {
+
+        if (this.closed) {
+            // TODO this.emit("opening")
+            this.closed = false;
+        }
+
         if (this.joined) {
             this.emit('resetJoin')
             this.joined = false;
@@ -172,43 +156,46 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
             },
             auth: {
                 token: this.token
-            }
-        });
+            },
+            path: '/' + this.path,
+            transports: ['websocket']
+        }) as PromiseSocket;
+        // @ts-ignore // TODO
+        this.socket.emitAsync = promise(this.socket)
 
         this.socket.on('connect', async () => {
             console.debug('socket.io.on.connect');
             this.emit('state', 'connect');
-            console.log("connect")
             await this.enterRoom();
         });
 
         this.socket.on('connect_error', async (err) => {
             console.debug('socket.io.on.connect_error');
-            this.emit('error', err)
+            this.emit('socket_error', err)
+            this.close()
         });
 
         this.socket.on('disconnect', async (reason) => {
-            console.log(reason)
             console.debug('socket.io.on.disconnect');
             this.joined = false;
-            this.emit('state', 'disconnect');
             this.sendTransport?.close()
             this.sendTransport = null;
             this.recvTransport?.close()
             this.recvTransport = null;
+            this.emit('socket_disconnect', reason);
         });
 
         this.socket.on('signal', (res: RoomClientSignal) => {
-            console.debug('socket.io.on.signal', res);
+            console.debug('socket.io.on.signal');
             this.handleSignal(res);
         });
 
-        this.socket.on('activeSpeaker', (res: ActiveSpeakerResponse) => {
-            console.debug('socket.io.on.activeSpeaker', res);
-            this.activeSpeakerId = res.peerId;
-            this.emit('activeSpeaker', res);
+        this.socket.on('notification', (res: RoomClientNotification) => {
+            // console.log('socket.io.on.notification', res);
+            this.handleNotification(res);
         });
     }
+
 
     async changeWebcamResolution(resolution: Resolution) {
         this.webcam.resolution = resolution
@@ -228,9 +215,13 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
                 }
             });
             const track = stream.getVideoTracks()[0];
-            await this.webcamProducer?.replaceTrack({track});
-        } catch (error) {
+            if (!this.webcamProducer) {
+                throw Error("Start webcamProducer");
+            }
 
+            await this.webcamProducer.replaceTrack({track});
+        } catch (error) {
+            console.log(error)
         }
     }
 
@@ -242,12 +233,12 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
 
         if (this.webcamProducer)
             return;
-        if (!this.mediaDevice) {
+        if (!this.mediasoupDevice) {
             this.emit("device")
             return
         }
 
-        if (!this.mediaDevice.canProduce('video')) {
+        if (!this.mediasoupDevice.canProduce('video')) {
             this.emit('device');
             return;
         }
@@ -283,7 +274,7 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
             let codec;
             const codecOptions = {videoGoogleStartBitrate: 1000};
 
-            const codecs = this.mediaDevice.rtpCapabilities.codecs;
+            const codecs = this.mediasoupDevice.rtpCapabilities.codecs;
             if (!codecs) {
                 return
             }
@@ -322,23 +313,32 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
                     codec
                 });
 
+            console.log("webcam", this.webcamProducer)
+
             if (!this.webcamProducer) {
                 return
             }
 
             this.webcamProducer.on('transportclose', () => {
+                console.log('transportclose')
                 this.webcamProducer = undefined;
             });
 
             this.webcamProducer.on('trackended', () => {
+                console.log('trackended')
                 this.disableVideo();
             });
 
+            this.producers.set(this.webcamProducer.id, this.webcamProducer)
+
             // TODO: local stream
-            this.emit('webcamProducer', track)
+            this.emit('localStream', track)
         } catch (error) {
+            console.log('_joinRoom() failed:%o', error);
+
             if (track)
                 track.stop();
+            this.emit('localStream', error)
         }
     }
 
@@ -348,17 +348,17 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
 
     async enableMic() {
         if (this.audioProducer)
+            // EMIT ERROR
             return;
 
-        if (!this.mediaDevice?.canProduce('audio')) {
-            // logger.error('enableMic() | cannot produce audio');
+        if (!this.mediasoupDevice?.canProduce('audio')) {
+            // EMIT ERROR
             return;
         }
 
         let track;
         try {
             if (!this.externalVideo) {
-                // logger.debug('enableMic() | calling getUserMedia()');
                 const stream = await navigator.mediaDevices.getUserMedia({audio: true});
                 track = stream.getAudioTracks()[0];
             } else {
@@ -366,8 +366,12 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
                 track = stream.getAudioTracks()[0].clone();
             }
 
+            if (!this.sendTransport) {
+                console.log("!this.sendTransport")
+                return
+            }
             const producer =
-                await this.sendTransport?.produce({
+                await this.sendTransport.produce({
                     track,
                     codecOptions: {
                         opusStereo: true,
@@ -375,20 +379,17 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
                     }
                 });
 
-            if (!producer) {
-                this.emit('');
-                return;
-            }
-
             this.producers.set(producer.id, producer)
 
-            producer.on('transportclose', () => {
+            producer.on('transportclose', (error) => {
+                console.log(error)
+                console.log("transportclose")
                 this.audioProducer = undefined;
             });
 
-            producer.on('trackended', () => {
-
-                // TODO
+            producer.on('trackended', (error) => {
+                console.log(error)
+                console.log('trackended')
                 this.emit('producer',
                     {
                         type: 'warning',
@@ -398,6 +399,7 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
                 this.disableMic();
             });
         } catch (error) {
+            console.error(error);
             this.emit('producer',
                 {
                     type: 'error',
@@ -444,26 +446,33 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
     }
 
     private async handleSignal(signal: RoomClientSignal) {
-        console.log("signal", signal)
         switch (signal.method) {
             case 'newPeer': {
                 const peer = signal;
+                console.log('newPeer', peer)
 
-                // store.dispatch(
-                //     stateActions.addPeer(
-                //         {...peer, consumers: [], dataConsumers: []}));
-                //
-                // store.dispatch(requestActions.notify(
-                //     {
-                //         text: `${peer.displayName} has joined the room`
-                //     }));
+                this.peers.set(peer.id, {
+                    id: peer.id,
+                    device: peer.device,
+                    consumers: [],
+                    dataConsumers: []
+                });
 
+                this.emit('newPeer', peer);
+                break;
+            }
+            case 'peerClosed': {
+                console.log('peerClosed')
+                const {peerId} = signal;
+                this.peers.delete(peerId);
+                this.emit('peerClosed', peerId)
                 break;
             }
             case 'newConsumer': {
 
                 if (!this.consume) {
                     this.emit('reject')
+                    console.log('newConsumer')
                     // reject(403, 'I do not want to consume');
                     break;
                 }
@@ -471,29 +480,65 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
                 const {
                     peerId,
                     producerId,
-                    id,
+                    consumerId,
                     kind,
                     rtpParameters,
-                    appData
+                    type,
+                    appData,
+                    producerPaused
                 } = signal;
 
                 try {
-                    const consumer = await this.recvTransport?.consume(
+                    if (!this.recvTransport)
+                        return
+
+                    const consumer = await this.recvTransport.consume(
                         {
-                            id,
+                            id: consumerId,
                             producerId,
                             kind,
                             rtpParameters,
                             appData: {...appData, peerId} // Trick.
                         });
 
-                    if (!consumer) {
-                        return;
-                    }
+                    // TODO
+                    const {spatialLayers, temporalLayers} =
+                        mediasoupClient.parseScalabilityMode(
+                            // @ts-ignore
+                            consumer.rtpParameters.encodings[0].scalabilityMode);
 
                     this.consumers.set(consumer.id, consumer);
 
+                    const peer = this.peers.get(peerId);
+
+                    if (!peer) {
+                        // TODO ERROR
+                        console.log(peer)
+                        return
+                    }
+
+                    peer.consumers = [...peer.consumers, {
+                        id: consumer.id,
+                        type: type,
+                        locallyPaused: false,
+                        remotelyPaused: producerPaused,
+                        rtpParameters: consumer.rtpParameters,
+                        spatialLayers: spatialLayers,
+                        temporalLayers: temporalLayers,
+                        preferredSpatialLayer: spatialLayers - 1,
+                        preferredTemporalLayer: temporalLayers - 1,
+                        priority: 1,
+                        codec: consumer.rtpParameters.codecs[0].mimeType.split('/')[1],
+                        track: consumer.track
+                    }]
+
+                    this.peers.set(peerId, peer)
+
+                    // TODO
+                    this.emit('peer', peer);
+
                     consumer.on('transportclose', () => {
+                        console.log('transportclose')
                         this.emit('transport')
                         this.consumers.delete(consumer.id);
                     });
@@ -514,6 +559,7 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
             }
 
             case 'newDataConsumer': {
+                console.log('newDataConsumer')
                 if (!this.consume) {
                     // reject(403, 'I do not want to data consume');
                     break;
@@ -527,7 +573,7 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
                 const {
                     peerId,
                     dataProducerId,
-                    id,
+                    dataConsumerId,
                     sctpStreamParameters,
                     label,
                     protocol,
@@ -537,7 +583,7 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
                 try {
                     const dataConsumer = await this.recvTransport?.consumeData(
                         {
-                            id,
+                            id: dataConsumerId,
                             dataProducerId,
                             sctpStreamParameters,
                             label,
@@ -582,6 +628,14 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
         }
     }
 
+    private handleNotification(notification: RoomClientNotification) {
+        switch (notification.method) {
+            case "activeSpeaker":
+                this.activeSpeakerId = notification.peerId;
+                this.emit('activeSpeaker', {peerId: notification, volume: notification.volume});
+        }
+    }
+
     private pauseConsumer(consumer: Consumer) {
 
     }
@@ -597,44 +651,39 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
         }
 
         try {
-            this.mediaDevice = new Device({handlerName: this.handlerName});
-            const routerRtpCapabilities = await this.socketEmitCallback<RtpCapabilities>('signal', {
-                method: 'getRouterRtpCapabilities'
-            });
-            await this.mediaDevice.load({routerRtpCapabilities});
-            await playSoundBrowserHack() // force data channel for Browser;
-
-            if (this.produce) {
-                const transportOptions = await this.socketEmitCallback<TransportOptions>('signal', {
-                    method: 'createWebRtcTransport',
-                    forceTcp: this.forceTcp,
-                    producing: true,
-                    consuming: false,
-                    sctpCapabilities: this.useDataChannel ? this.mediaDevice.sctpCapabilities : undefined
+            this.mediasoupDevice = new Device({handlerName: this.handlerName});
+            const routerRtpCapabilities = await this.socket.emitAsync<RtpCapabilities>(peerEventNames.signal,
+                {
+                    method: 'getRouterRtpCapabilities'
                 });
 
-                const {
-                    id,
-                    iceParameters,
-                    iceCandidates,
-                    dtlsParameters,
-                    sctpParameters
-                } = transportOptions;
 
-                this.sendTransport = this.mediaDevice.createSendTransport({
-                    id,
-                    iceParameters,
-                    iceCandidates,
-                    dtlsParameters,
-                    sctpParameters,
-                    iceServers: this.iceServers,
-                    proprietaryConstraints: PC_PROPRIETARY_CONSTRAINTS
+            await this.mediasoupDevice.load({routerRtpCapabilities});
+            await playSoundBrowserHack()
+
+            if (this.produce) {
+                const transportOptions = await this.socket.emitAsync<TransportOptions>(peerEventNames.signal,
+                    {
+                        method: roomSignalMethods.createWebRtcTransport,
+                        forceTcp: this.forceTcp,
+                        producing: true,
+                        consuming: false,
+                        sctpCapabilities: this.useDataChannel ?
+                            this.mediasoupDevice.sctpCapabilities : undefined
+                    });
+
+                console.log(this.mediasoupDevice.rtpCapabilities);
+
+                this.sendTransport = this.mediasoupDevice.createSendTransport({
+                    ...transportOptions,
+                    proprietaryConstraints: PC_PROPRIETARY_CONSTRAINTS,
                 });
 
                 this.sendTransport.on('connect', (
                     {dtlsParameters}, callback, errback) => {
-                    this.socketEmitCallback('signal', {
-                        method: 'connectWebRtcTransport',
+                    console.log('sendTransport.on.connect', this.sendTransport?.id)
+                    this.socket?.emitAsync(peerEventNames.signal, {
+                        method: roomSignalMethods.connectWebRtcTransport,
                         transportId: this.sendTransport?.id,
                         dtlsParameters
                     }).then(callback).catch(errback);
@@ -642,8 +691,9 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
 
                 this.sendTransport.on('produce', async (
                     {kind, rtpParameters, appData}, callback, errback) => {
-                    this.socketEmitCallback('signal', {
-                        method: 'produce',
+                    console.log('sendTransport.on.produce', this.sendTransport?.id)
+                    this.socket?.emitAsync(peerEventNames.signal, {
+                        method: roomSignalMethods.produce,
                         transportId: this.sendTransport?.id,
                         kind,
                         rtpParameters,
@@ -661,8 +711,8 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
                     callback,
                     errback
                 ) => {
-                    await this.socketEmitCallback('signal', {
-                        method: 'produceData',
+                    this.socket?.emitAsync(peerEventNames.signal, {
+                        method: roomSignalMethods.produceData,
                         transportId: this.sendTransport?.id,
                         sctpStreamParameters,
                         label,
@@ -670,17 +720,25 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
                         appData
                     }).then(callback).catch(errback);
                 });
+
+                this.sendTransport.on('connectionstatechange', (connectionState) => {
+                    console.log('connectionstatechange', connectionState)
+                    // if (connectionState === 'connected') {
+                    //     this.enableChatDataProducer();
+                    //     this.enableBotDataProducer();
+                    // }
+                });
             }
 
             if (this.consume) {
                 const transportInfo =
-                    await this.socketEmitCallback<TransportOptions>('signal', {
-                        method: 'createWebRtcTransport',
+                    await this.socket.emitAsync<TransportOptions>(peerEventNames.signal, {
+                        method: roomSignalMethods.createWebRtcTransport,
                         forceTcp: this.forceTcp,
                         producing: false,
                         consuming: true,
                         sctpCapabilities: this.useDataChannel
-                            ? this.mediaDevice.sctpCapabilities
+                            ? this.mediasoupDevice.sctpCapabilities
                             : undefined
                     });
 
@@ -692,61 +750,49 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
                     sctpParameters
                 } = transportInfo;
 
-                this.recvTransport = this.mediaDevice.createRecvTransport({
+                this.recvTransport = this.mediasoupDevice.createRecvTransport({
                     id,
                     iceParameters,
                     iceCandidates,
                     dtlsParameters,
                     sctpParameters,
-                    iceServers: this.iceServers
+                    // iceServers: this.iceServers
                 });
 
                 this.recvTransport.on('connect',
                     ({dtlsParameters}, callback, errback) => {
-                        this.socketEmitCallback('signal', {
-                            method: 'connectWebRtcTransport',
+                        this.socket?.emitAsync(peerEventNames.signal, {
+                            method: roomSignalMethods.connectWebRtcTransport,
                             transportId: this.recvTransport?.id,
                             dtlsParameters
                         }).then(callback).catch(errback);
+                        console.log(dtlsParameters)
                     });
             }
 
+            // SET MEDIA C
+
             const peers: Peer[] =
-                await this.socketEmitCallback<Peer[]>('signal', {
-                    method: 'join',
+                await this.socket.emitAsync<Peer[]>(peerEventNames.signal, {
+                    method: roomSignalMethods.join,
                     displayName: this.displayName,
-                    device: this.mediaDevice,
-                    rtpCapabilities: this.consume
-                        ? this.mediaDevice.rtpCapabilities
-                        : undefined,
-                    sctpCapabilities: this.useDataChannel && this.consume
-                        ? this.mediaDevice.sctpCapabilities
-                        : undefined
+                    device: this.mediasoupDevice,
+                    rtpCapabilities: this.consume ?
+                        this.mediasoupDevice.rtpCapabilities : undefined,
+                    sctpCapabilities: this.useDataChannel && this.consume ?
+                        this.mediasoupDevice.sctpCapabilities : undefined
                 });
 
             for (const peer of peers) {
-                this.peerMap.set(peer.id, {...peer, consumers: [], dataConsumers: []});
+                this.emit('peer', {...peer, consumers: [], dataConsumers: []});
+                this.peers.set(peer.id, {...peer, consumers: [], dataConsumers: []});
             }
 
             if (this.produce) {
-
-                this.mediaCapabilities = {
-                    canSendMic: this.mediaDevice.canProduce('audio'),
-                    canSendWebcam: this.mediaDevice.canProduce('video')
-                }
-
                 await this.enableMic();
-
                 const devicesCookie = getDevices();
                 if (!devicesCookie || devicesCookie.webcamEnabled || this.externalVideo)
                     await this.enableWebcam();
-
-                this.sendTransport?.on('connectionstatechange', (connectionState) => {
-                    // if (connectionState === 'connected') {
-                    //     this.enableChatDataProducer();
-                    //     this.enableBotDataProducer();
-                    // }
-                });
             }
         } catch (error) {
             console.log(error)
@@ -754,17 +800,6 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
             return error;
         }
     }
-
-    // Can't extend class for this version of SOCKET...
-    private async socketEmitCallback<T>(method: string, args?: Record<string, string | number | boolean | any>): Promise<T> {
-        return await new Promise((resolve, reject) => {
-            this.socket?.emit(method, args, (res: T) => {
-                console.log('socket-callback', res)
-                return resolve(res)
-            });
-        });
-    }
-
 }
 
 export default RoomClient
