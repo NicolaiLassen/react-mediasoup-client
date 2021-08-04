@@ -1,9 +1,9 @@
 {
-  "name": "sfu-client",
+  "name": "mediasoup-react-client",
   "version": "0.1.0",
   "private": true,
+  "repository": "git://github.com/NicolaiLassen/react-mediasoup-client.git",
   "dependencies": {
-    "react-mediasoup-client": "git+https://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:x-oauth-basic@github.com:NicolaiLassen/react-mediasoup-client.git",
     "@testing-library/jest-dom": "^5.11.4",
     "@testing-library/react": "^11.1.0",
     "@testing-library/user-event": "^12.1.10",
