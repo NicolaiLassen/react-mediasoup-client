@@ -1,5 +1,6 @@
 import React, {createContext, createRef} from "react";
 import useElementAspectRatio from "../../hooks/useElementAspectRatio";
+import {StyledVideoGrid} from "./Styled";
 
 interface GridContext {
     usingGrid: boolean;
@@ -25,9 +26,9 @@ export const VideoGrid: React.FC<VideoGridProps> =
 
         return (
             <GridContext.Provider value={{usingGrid: true}}>
-                <div>
+                <StyledVideoGrid>
                     {children}
-                </div>
+                </StyledVideoGrid>
             </GridContext.Provider>
         )
     }
