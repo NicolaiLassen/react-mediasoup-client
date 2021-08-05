@@ -15,16 +15,18 @@
     "url": "git+https://github.com/NicolaiLassen/react-mediasoup-client.git"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --build",
     "watch": "tsc --watch",
     "prepare": "npm run build",
     "test": "cd test && npm run test"
   },
   "dependencies": {
-    "@material-ui/core": "^4.12.3",
     "mediasoup-client": "^3.6.29",
     "socket.io-client": "4.0.0",
     "strict-event-emitter": "^0.2.0",
+    "style-loader": "^0.23.1",
+    "styled-components": "^5.1.0",
+    "styled-system": "^5.1.5",
     "universal-cookie": "^4.0.4"
   },
   "devDependencies": {
@@ -35,15 +37,12 @@
     "@types/node": "^12.0.0",
     "@types/react": "^17.0.0",
     "@types/react-dom": "^17.0.0",
+    "@types/styled-components": "^5.1.12",
     "mediasoup-client": "^3.6.29",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-scripts": "4.0.3",
-    "typescript": "^4.1.2",
-    "web-vitals": "^1.0.1",
-    "socket.io-client": "4.0.0",
-    "strict-event-emitter": "^0.2.0",
-    "universal-cookie": "^4.0.4"
+    "typescript": "^4.1.2"
   },
   "peerDependencies": {
     "@testing-library/jest-dom": "^5.11.4",
@@ -56,7 +55,6 @@
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-scripts": "4.0.3",
-    "typescript": "^4.1.2",
-    "web-vitals": "^1.0.1"
+    "typescript": "^4.1.2"
   }
 }

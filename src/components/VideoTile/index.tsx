@@ -1,5 +1,5 @@
 import React, {forwardRef, HTMLAttributes} from "react";
-import {makeStyles} from "@material-ui/core";
+import {StyledVideoTile} from "./Styled";
 
 type ObjectFit = 'contain' | 'cover' | 'fill' | 'none' | 'scale-down';
 
@@ -8,29 +8,18 @@ export interface VideoTileProps
     objectFit?: ObjectFit;
 }
 
-const useStyles = makeStyles((theme) => ({
-    innoVideo: {
-        margin: theme.spacing(4),
-        maxWidth: '100%',
-        [theme.breakpoints.down('sm')]: {
-            margin: theme.spacing(2, 0),
-        },
-    },
-}));
-
 export const VideoTile = forwardRef(
     (props: VideoTileProps, ref: React.Ref<HTMLVideoElement>) => {
 
-        const classes = useStyles();
         const {className, ...rest} = props;
 
         return (
-            <div
-                className={className}
+            <StyledVideoTile
+                className="inno-video"
                 {...rest}
             >
-                <video ref={ref} className={classes.innoVideo}/>
-            </div>
+                <video ref={ref}/>
+            </StyledVideoTile>
         );
     }
 );
