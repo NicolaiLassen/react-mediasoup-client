@@ -10,7 +10,6 @@ export interface VideoTileProps
 
 export const VideoTile = forwardRef(
     (props: VideoTileProps, ref: React.Ref<HTMLVideoElement>) => {
-
         const {className, ...rest} = props;
 
         return (

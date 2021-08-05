@@ -8,20 +8,20 @@ import {TransportOptions} from "mediasoup-client/lib/Transport";
 import {Producer} from "mediasoup-client/lib/Producer";
 import {io} from "socket.io-client";
 import {DataConsumer} from "mediasoup-client/lib/DataConsumer";
-import {RoomEventsMap} from "../models/RoomClientEventsMap";
+import {RoomEventsMap} from "../types/RoomClientEventsMap";
 import {PromiseSocket} from "../utils/socket.io-promise";
-import {DeviceStream, Resolution, RoomClientConfig, roomConfigDefault} from "../models/RoomClientConfig";
-import {Peer, peerEventNames} from "../models/Peer";
+import {DeviceStream, Resolution, RoomClientConfig, roomConfigDefault} from "../types/RoomClientConfig";
+import {Peer, peerEventNames} from "../types/Peer";
 import {ProducerSoundBrowserForce, uuidv4} from "../utils/webRTCUtil";
-import {RoomClientSignal} from "../models/RoomClientSignal";
-import {RoomClientNotification} from "../models/RoomClintNotification";
+import {RoomClientSignal} from "../types/RoomClientSignal";
+import {RoomClientNotification} from "../types/RoomClintNotification";
 import {
     PC_PROPRIETARY_CONSTRAINTS,
     VIDEO_CONSTRAINS,
     WEBCAM_KSVC_ENCODINGS,
     WEBCAM_SIMULCAST_ENCODINGS
 } from "../constants/videoConfig";
-import {roomSignalMethods} from "../models/RoomSignal";
+import {roomSignalMethods} from "../types/RoomSignal";
 import {getDevices} from "../utils/cookieStore";
 
 
