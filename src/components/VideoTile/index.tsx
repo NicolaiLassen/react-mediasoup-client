@@ -6,11 +6,12 @@ type ObjectFit = 'contain' | 'cover' | 'fill' | 'none' | 'scale-down';
 export interface VideoTileProps
     extends Omit<HTMLAttributes<HTMLDivElement>, 'css'> {
     objectFit?: ObjectFit;
+    me?: boolean;
 }
 
 export const VideoTile = forwardRef(
     (props: VideoTileProps, ref: React.Ref<HTMLVideoElement>) => {
-        const {className, ...rest} = props;
+        const {me, className, ...rest} = props;
 
         return (
             <StyledVideoTile
