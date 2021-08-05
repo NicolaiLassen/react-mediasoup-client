@@ -9,7 +9,7 @@ interface useRoomProps {
     config: RoomClientConfig;
 }
 
-const useRoom = ({url, roomId, peerId, config}: useRoomProps) => {
+const useRoomManager = ({url, roomId, peerId, config}: useRoomProps) => {
 
     const [room, setRoom] = useState(new RoomClient('http://rtc.innosocial.dk', 'innoTest123'));
 
@@ -20,4 +20,4 @@ const useRoom = ({url, roomId, peerId, config}: useRoomProps) => {
     return {}
 }
 
-export default useRoom;
+export default useRoomManager;

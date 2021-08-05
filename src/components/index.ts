@@ -1,4 +1,3 @@
-import Me from './Me';
-import PeerView from "./PeerView";
+import VideoTile from "./grid/VideoTile";
 
-export {Me, PeerView};
+export {VideoTile};

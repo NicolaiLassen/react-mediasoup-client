@@ -71,7 +71,6 @@ const PeerView: React.FC<PeerViewProps> = (
                 muted
                 controls={false}
             />
-
             <audio
                 ref={audioElem}
                 autoPlay
@@ -79,7 +78,6 @@ const PeerView: React.FC<PeerViewProps> = (
                 muted={isMe || audioMuted}
                 controls={false}
             />
-
         </div>
     )
 }

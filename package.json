@@ -1,40 +1,31 @@
 {
   "name": "react-mediasoup-client",
+  "description": "InnoSocial video provider",
   "version": "0.1.0",
   "private": true,
   "author": "Nicolai M. T. Lassen",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/MichaelGuldborg/redux-rest.git"
-  },
   "main": "dist/index.js",
+  "module": "dist/index.esm.js",
   "types": "./dist/index.d.ts",
   "files": [
     "dist"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NicolaiLassen/react-mediasoup-client.git"
+  },
   "scripts": {
     "build": "tsc",
     "watch": "tsc --watch",
     "prepare": "npm run build",
     "test": "cd test && npm run test"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
+  "dependencies": {
+    "@material-ui/core": "^4.12.3",
+    "mediasoup-client": "^3.6.29",
+    "socket.io-client": "4.0.0",
+    "strict-event-emitter": "^0.2.0",
+    "universal-cookie": "^4.0.4"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^5.11.4",
@@ -62,14 +53,10 @@
     "@types/node": "^12.0.0",
     "@types/react": "^17.0.0",
     "@types/react-dom": "^17.0.0",
-    "mediasoup-client": "^3.6.29",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-scripts": "4.0.3",
     "typescript": "^4.1.2",
-    "web-vitals": "^1.0.1",
-    "socket.io-client": "4.0.0",
-    "strict-event-emitter": "^0.2.0",
-    "universal-cookie": "^4.0.4"
+    "web-vitals": "^1.0.1"
   }
 }
