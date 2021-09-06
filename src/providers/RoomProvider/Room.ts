@@ -19,12 +19,12 @@ import {
 } from "../../constants/videoConfig";
 import {getDevices} from "../../utils/cookieStore";
 import {createPromiseSocket, PromiseSocket} from "../../utils/promiseSocket";
-import {RoomEventsMap} from "./RoomEventsMap";
+import {RoomEventMap} from "./RoomEventMap";
 import {ActiveSpeaker, RoomNotification} from "./RoomNotification";
 import {ROOM_CONFIG_DEFAULT} from "../../constants/roomConfig";
 
 
-class Room extends StrictEventEmitter<RoomEventsMap> {
+class Room extends StrictEventEmitter<RoomEventMap> {
 
     readonly roomId: string;
     readonly peerId: string;
@@ -47,8 +47,8 @@ class Room extends StrictEventEmitter<RoomEventsMap> {
     private closed = false;
     private externalVideo = false;
 
-    producers: Map<string, Producer> = new Map()
-    consumers: Map<string, Consumer> = new Map();
+    private producers: Map<string, Producer> = new Map()
+    private consumers: Map<string, Consumer> = new Map();
     private dataConsumers = new Map<string, DataConsumer>();
     private readonly handlerName?: BuiltinHandlerName;
 
@@ -58,7 +58,7 @@ class Room extends StrictEventEmitter<RoomEventsMap> {
     audioProducer?: Producer;
     audioLoading = false;
 
-    shareProducer? = Producer;
+    private shareProducer? = Producer;
     shareProducerLoading = false;
 
     private activeSpeakerId?: string;
@@ -166,6 +166,7 @@ class Room extends StrictEventEmitter<RoomEventsMap> {
         this.socket.on('connect_error', async (err: any) => {
             console.debug('socket.io.on.connect_error');
             this.emit('socket_error', err)
+            this.emit('state', 'err');
             this.close()
         });
 
@@ -278,7 +279,9 @@ class Room extends StrictEventEmitter<RoomEventsMap> {
                 if (!codec) {
                     this.emit("")
                 }
-            } else if (this.forceVP9) {
+            }
+
+            if (this.forceVP9) {
                 codec = codecs.find((c) => c.mimeType.toLowerCase() === 'video/vp9');
                 if (!codec) {
                     this.emit("")
@@ -307,7 +310,7 @@ class Room extends StrictEventEmitter<RoomEventsMap> {
                     codec
                 });
 
-            console.log("webcam", this.webcamProducer)
+            console.debug("webcam", this.webcamProducer)
 
             if (!this.webcamProducer) {
                 return
@@ -327,11 +330,14 @@ class Room extends StrictEventEmitter<RoomEventsMap> {
 
             // TODO: local stream
             this.emit('localStream', track)
+
         } catch (error) {
-            console.log('_joinRoom() failed:%o', error);
+            console.error('_joinRoom() failed:%o', error);
 
             if (track)
                 track.stop();
+
+            // TODO
             this.emit('localStream', error)
         }
     }
@@ -549,13 +555,12 @@ class Room extends StrictEventEmitter<RoomEventsMap> {
 
             case 'newDataConsumer': {
                 console.log('newDataConsumer')
+
                 if (!this.consume) {
-                    // reject(403, 'I do not want to data consume');
                     break;
                 }
 
                 if (!this.useDataChannel) {
-                    // reject(403, 'I do not want DataChannels');
                     break;
                 }
 
@@ -739,7 +744,7 @@ class Room extends StrictEventEmitter<RoomEventsMap> {
                     iceCandidates,
                     dtlsParameters,
                     sctpParameters,
-                    // TODO: Trickle
+                    // TODO: Trickle?
                     // iceServers: this.iceServers
                 });
 
@@ -788,20 +793,20 @@ class Room extends StrictEventEmitter<RoomEventsMap> {
     }
 
     subscribeToAudioVideo(callback: (av: RoomStatus) => void) {
-    }
-
-    unsubscribeFromAudioVideo(callbackToRemove: (av: RoomStatus) => void) {
-        return undefined;
+        // TODO: NAMEING
+        this.on('audioVideo', callback)
     }
 
     subscribeToActiveSpeaker(callback: (av: ActiveSpeaker) => void) {
-        this.on("activeSpeaker", (activeSpeaker: ActiveSpeaker) => {
-            callback(activeSpeaker)
-        });
+        this.on('speaker', callback);
+    }
+
+    unsubscribeFromAudioVideo(callbackToRemove: (av: RoomStatus) => void) {
+        this.removeListener('audioVideo', callbackToRemove)
     }
 
     unsubscribeFromActiveSpeaker(callbackToRemove: (av: ActiveSpeaker) => void) {
-        return undefined;
+        this.removeListener('speaker', callbackToRemove);
     }
 }
 

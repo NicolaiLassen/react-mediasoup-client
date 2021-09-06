@@ -19,7 +19,6 @@ export const VideoGrid: React.FC<VideoGridProps> =
          ...rest
      }) => {
 
-
         const gridEl = createRef<HTMLDivElement>();
         const ratio = useElementAspectRatio(gridEl);
         const childrenCount = React.Children.count(children);

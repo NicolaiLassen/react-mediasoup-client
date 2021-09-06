@@ -1,7 +1,7 @@
 import {EventsMap} from "socket.io-client/build/typed-events";
 import {ActiveSpeaker} from "./RoomNotification";
 
-export interface RoomEventsMap extends EventsMap {
+export interface RoomEventMap extends EventsMap {
     request: (req: Request) => void
     response: (res: Response) => void;
     close: () => void

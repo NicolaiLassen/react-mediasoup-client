@@ -36,7 +36,6 @@ export interface PeerClosed {
     peerId: string;
 }
 
-
 export type RoomSignal = NewConsumer
     | NewDataConsumer
     | NewPeer
