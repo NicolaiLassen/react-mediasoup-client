@@ -7,21 +7,20 @@ import {RtpCapabilities} from "mediasoup-client/lib/RtpParameters";
 import {TransportOptions} from "mediasoup-client/lib/Transport";
 import {Producer} from "mediasoup-client/lib/Producer";
 import {DataConsumer} from "mediasoup-client/lib/DataConsumer";
-import {ActiveSpeaker, RoomNotification} from "./RoomClintNotification";
-import {RoomEventsMap} from "./RoomClientEventsMap";
 import {DeviceStream, Resolution, RoomConfig, roomConfigDefault} from "./RoomConfig";
 import {Peer, peerEventNames} from "./Peer";
 import {ProducerSoundBrowserForce, uuidv4} from "../../utils/webRTCUtil";
-import {RoomSignal} from "./RoomSignal";
+import {RoomSignal, roomSignalMethods} from "./RoomSignal";
 import {
     PC_PROPRIETARY_CONSTRAINTS,
     VIDEO_CONSTRAINS,
     WEBCAM_KSVC_ENCODINGS,
     WEBCAM_SIMULCAST_ENCODINGS
 } from "../../constants/videoConfig";
-import {roomSignalMethods} from "./RoomSignal";
 import {getDevices} from "../../utils/cookieStore";
 import {createPromiseSocket, PromiseSocket} from "../../utils/promiseSocket";
+import {RoomEventsMap} from "./RoomEventsMap";
+import {ActiveSpeaker, RoomNotification} from "./RoomNotification";
 
 
 class Room extends StrictEventEmitter<RoomEventsMap> {
