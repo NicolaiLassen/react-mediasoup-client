@@ -6,26 +6,25 @@ import {BuiltinHandlerName} from "mediasoup-client/lib/Device";
 import {RtpCapabilities} from "mediasoup-client/lib/RtpParameters";
 import {TransportOptions} from "mediasoup-client/lib/Transport";
 import {Producer} from "mediasoup-client/lib/Producer";
-import {io} from "socket.io-client";
 import {DataConsumer} from "mediasoup-client/lib/DataConsumer";
-import {RoomEventsMap} from "../types/RoomClientEventsMap";
-import {PromiseSocket} from "../utils/socket.io-promise";
-import {DeviceStream, Resolution, RoomClientConfig, roomConfigDefault} from "../types/RoomClientConfig";
-import {Peer, peerEventNames} from "../types/Peer";
-import {ProducerSoundBrowserForce, uuidv4} from "../utils/webRTCUtil";
-import {RoomClientSignal} from "../types/RoomClientSignal";
-import {RoomClientNotification} from "../types/RoomClintNotification";
+import {ActiveSpeaker, RoomNotification} from "./RoomClintNotification";
+import {RoomEventsMap} from "./RoomClientEventsMap";
+import {DeviceStream, Resolution, RoomConfig, roomConfigDefault} from "./RoomConfig";
+import {Peer, peerEventNames} from "./Peer";
+import {ProducerSoundBrowserForce, uuidv4} from "../../utils/webRTCUtil";
+import {RoomSignal} from "./RoomSignal";
 import {
     PC_PROPRIETARY_CONSTRAINTS,
     VIDEO_CONSTRAINS,
     WEBCAM_KSVC_ENCODINGS,
     WEBCAM_SIMULCAST_ENCODINGS
-} from "../constants/videoConfig";
-import {roomSignalMethods} from "../types/RoomSignal";
-import {getDevices} from "../utils/cookieStore";
+} from "../../constants/videoConfig";
+import {roomSignalMethods} from "./RoomSignal";
+import {getDevices} from "../../utils/cookieStore";
+import {createPromiseSocket, PromiseSocket} from "../../utils/promiseSocket";
 
 
-class RoomClient extends StrictEventEmitter<RoomEventsMap> {
+class Room extends StrictEventEmitter<RoomEventsMap> {
 
     readonly roomId: string;
     readonly peerId: string;
@@ -65,9 +64,10 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
     private activeSpeakerId?: string;
 
     // CONFIGS
+    private mediaCapabilities: any;
+
     private audioOnly = false;
     private webcamOnly = false
-    private mediaCapabilities: any;
     private useDataChannel: boolean;
     private produce: boolean;
     private consume: boolean;
@@ -84,11 +84,11 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
     constructor(url: string,
                 roomId: string,
                 peerId?: string,
-                config?: Partial<RoomClientConfig>,
+                config?: Partial<RoomConfig>,
                 path = 'server',
     ) {
         super();
-        const defaultConfig: RoomClientConfig = {
+        const defaultConfig: RoomConfig = {
             ...roomConfigDefault,
             ...config
         }
@@ -123,7 +123,6 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
         this.reconnectionTimeout = defaultConfig.reconnectionTimeout;
     }
 
-    //
     close() {
         if (this.closed)
             return;
@@ -137,7 +136,6 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
     async join() {
 
         if (this.closed) {
-            // TODO this.emit("opening")
             this.closed = false;
         }
 
@@ -146,7 +144,7 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
             this.joined = false;
         }
 
-        this.socket = io(this.url, {
+        this.socket = createPromiseSocket(this.url, {
             reconnectionDelayMax: this.reconnectionTimeout,
             query: {
                 'peerId': this.peerId,
@@ -157,9 +155,7 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
             },
             path: '/' + this.path,
             transports: ['websocket']
-        }) as PromiseSocket;
-        // @ts-ignore // TODO
-        this.socket.emitAsync = promise(this.socket)
+        });
 
         this.socket.on('connect', async () => {
             console.debug('socket.io.on.connect');
@@ -167,13 +163,13 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
             await this.enterRoom();
         });
 
-        this.socket.on('connect_error', async (err) => {
+        this.socket.on('connect_error', async (err: any) => {
             console.debug('socket.io.on.connect_error');
             this.emit('socket_error', err)
             this.close()
         });
 
-        this.socket.on('disconnect', async (reason) => {
+        this.socket.on('disconnect', async (reason: any) => {
             console.debug('socket.io.on.disconnect');
             this.joined = false;
             this.sendTransport?.close()
@@ -183,23 +179,23 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
             this.emit('socket_disconnect', reason);
         });
 
-        this.socket.on('signal', (res: RoomClientSignal) => {
+        this.socket.on('signal', (res: RoomSignal) => {
             console.debug('socket.io.on.signal');
             this.handleSignal(res);
         });
 
-        this.socket.on('notification', (res: RoomClientNotification) => {
+        this.socket.on('notification', (res: RoomNotification) => {
             console.debug('socket.io.on.notification');
             this.handleNotification(res);
         });
     }
 
-
     async changeWebcamResolution(resolution: Resolution) {
         this.webcam.resolution = resolution
         if (!this.webcam?.device) {
-            this.emit('device', {
-                type: 'warning',
+            this.emit('error', {
+                type: 'device',
+                severity: 'warning',
                 message: 'No device found'
             })
             return;
@@ -264,7 +260,7 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
                 });
                 track = stream.getVideoTracks()[0];
             } else {
-                const stream = await this.getExternalVideoStream();
+                const stream = new MediaStream();
                 track = stream.getVideoTracks()[0].clone();
             }
 
@@ -360,7 +356,7 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
                 const stream = await navigator.mediaDevices.getUserMedia({audio: true});
                 track = stream.getAudioTracks()[0];
             } else {
-                const stream = await this.getExternalVideoStream();
+                const stream = new MediaStream();
                 track = stream.getAudioTracks()[0].clone();
             }
 
@@ -385,7 +381,7 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
                 this.audioProducer = undefined;
             });
 
-            producer.on('trackended', (error) => {
+            producer.on('trackended', (error: any) => {
                 console.log(error)
                 console.log('trackended')
                 this.emit('producer',
@@ -438,12 +434,7 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
         this.emit('');
     }
 
-    private getExternalVideoStream(): MediaStream {
-        this.emit('deviceStream');
-        return new MediaStream();
-    }
-
-    private async handleSignal(signal: RoomClientSignal) {
+    private async handleSignal(signal: RoomSignal) {
         switch (signal.method) {
             case 'newPeer': {
                 const peer = signal;
@@ -626,7 +617,7 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
         }
     }
 
-    private handleNotification(notification: RoomClientNotification) {
+    private handleNotification(notification: RoomNotification) {
         switch (notification.method) {
             case "activeSpeaker":
                 this.activeSpeakerId = notification.peerId;
@@ -641,8 +632,9 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
     private async enterRoom() {
 
         if (!this.socket) {
-            this.emit('socket', {
-                type: 'error',
+            this.emit('error', {
+                type: 'socket',
+                severity: 'warning',
                 message: 'Socket not connected'
             })
             return
@@ -654,7 +646,6 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
                 {
                     method: 'getRouterRtpCapabilities'
                 });
-
 
             await this.mediasoupDevice.load({routerRtpCapabilities});
             await ProducerSoundBrowserForce()
@@ -669,8 +660,6 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
                         sctpCapabilities: this.useDataChannel ?
                             this.mediasoupDevice.sctpCapabilities : undefined
                     });
-
-                console.log(this.mediasoupDevice.rtpCapabilities);
 
                 this.sendTransport = this.mediasoupDevice.createSendTransport({
                     ...transportOptions,
@@ -721,10 +710,6 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
 
                 this.sendTransport.on('connectionstatechange', (connectionState) => {
                     console.log('connectionstatechange', connectionState)
-                    // if (connectionState === 'connected') {
-                    //     this.enableChatDataProducer();
-                    //     this.enableBotDataProducer();
-                    // }
                 });
             }
 
@@ -754,6 +739,7 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
                     iceCandidates,
                     dtlsParameters,
                     sctpParameters,
+                    // TODO: Trickle
                     // iceServers: this.iceServers
                 });
 
@@ -792,11 +778,33 @@ class RoomClient extends StrictEventEmitter<RoomEventsMap> {
                     await this.enableWebcam();
             }
         } catch (error) {
+
+            // TODO
             console.log(error)
             this.close();
             return error;
         }
     }
+
+    subscribeToStatus(callback: (status: RoomStatus) => void) {
+    }
+
+    subscribeToAudioVideo(callback: (av: RoomStatus) => void) {
+    }
+
+    unsubscribeFromAudioVideo(callbackToRemove: (av: RoomStatus) => void) {
+        return undefined;
+    }
+
+    subscribeToActiveSpeaker(callback: (av: ActiveSpeaker) => void) {
+        this.on("activeSpeaker", (activeSpeaker: ActiveSpeaker) => {
+            callback(activeSpeaker)
+        });
+    }
+
+    unsubscribeFromActiveSpeaker(callbackToRemove: (av: ActiveSpeaker) => void) {
+        return undefined;
+    }
 }
 
-export default RoomClient
+export default Room

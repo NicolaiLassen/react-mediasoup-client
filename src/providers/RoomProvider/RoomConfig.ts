@@ -1,5 +1,5 @@
 import {BuiltinHandlerName} from "mediasoup-client/lib/Device";
-import {uuidv4} from "../utils/webRTCUtil";
+import {uuidv4} from "../../utils/webRTCUtil";
 
 // qvga:  320 × 240 , vga: 640 x 480, hd: 1280x720
 export type Resolution = 'qvga' | 'vga' | 'hd';
@@ -9,7 +9,7 @@ export interface DeviceStream {
     resolution: Resolution;
 }
 
-export interface RoomClientConfig {
+export interface RoomConfig {
     produce: boolean;
     muted: boolean;
     consume: boolean;
@@ -31,7 +31,7 @@ export interface RoomClientConfig {
     webRTConfig?: RTCConfiguration
 }
 
-export const roomConfigDefault: RoomClientConfig = {
+export const roomConfigDefault: RoomConfig = {
     produce: true,
     consume: true,
     forceH264: false,

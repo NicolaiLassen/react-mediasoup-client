@@ -9,5 +9,5 @@ export interface ActiveSpeakerSilence {
     peerId: string,
 }
 
-export type RoomClientNotification = ActiveSpeaker
+export type RoomNotification = ActiveSpeaker
     | ActiveSpeakerSilence;

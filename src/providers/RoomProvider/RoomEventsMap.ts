@@ -1,5 +1,5 @@
 import {EventsMap} from "socket.io-client/build/typed-events";
-import {ActiveSpeaker} from "./RoomClintNotification";
+import {ActiveSpeaker} from "./RoomNotification";
 
 export interface RoomEventsMap extends EventsMap {
     request: (req: Request) => void

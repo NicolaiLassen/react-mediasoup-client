@@ -1,49 +1,62 @@
 import React, {createContext, useContext, useState} from "react";
-import RoomClient from "../../lib/RoomClient";
+import Room from "./Room";
+import {AudioVideoProvider} from "../AudioVideoProvider";
+import {LocalVideoProvider} from "../LocalVideoProvider";
+import {RoomConfig} from "./RoomConfig";
+import {ActiveSpeakerProvider} from "../ActiveSpeakerProvider";
+import {RemoteVideoProvider} from "../RemoteProvider";
+import {DevicesProvider} from "../DevicesProvider";
 
-export const RoomContext = createContext<RoomClient | null>(null);
+export const RoomContext = createContext<Room | null>(null);
 
 interface RoomProviderProps {
+    roomId: string;
+    peerId?: string;
+    token?: string;
+    url?: string;
+    path?: string;
+    config?: Partial<RoomConfig>;
 
 }
 
 export const RoomProvider: React.FC<RoomProviderProps> =
     ({
+         roomId,
+         peerId,
+         token = '',
+         url = '',
+         path = 'server',
+         config,
          children,
+
      }) => {
 
-        const [roomClient] = useState(new RoomClient("", "", ""));
+        const [roomClient] = useState(new Room(url, roomId, peerId, config, path));
 
         return (
             <RoomContext.Provider value={roomClient}>
-                {/*<AudioVideoProvider>*/}
-                {/*    <DevicesProvider>*/}
-                {/*        <RosterProvider>*/}
-                {/*            <RemoteVideoTileProvider>*/}
-                {/*                <LocalVideoProvider>*/}
-                {/*                    <LocalAudioOutputProvider>*/}
-                {/*                        <ContentShareProvider>*/}
-                {/*                            <FeaturedVideoTileProvider>*/}
-                {children}
-                {/*                            </FeaturedVideoTileProvider>*/}
-                {/*                        </ContentShareProvider>*/}
-                {/*                    </LocalAudioOutputProvider>*/}
-                {/*                </LocalVideoProvider>*/}
-                {/*            </RemoteVideoTileProvider>*/}
-                {/*        </RosterProvider>*/}
-                {/*    </DevicesProvider>*/}
-                {/*</AudioVideoProvider>*/}
+                <AudioVideoProvider>
+                    <DevicesProvider>
+                        <RemoteVideoProvider>
+                            <ActiveSpeakerProvider>
+                                <LocalVideoProvider>
+                                    {children}
+                                </LocalVideoProvider>
+                            </ActiveSpeakerProvider>
+                        </RemoteVideoProvider>
+                    </DevicesProvider>
+                </AudioVideoProvider>
             </RoomContext.Provider>
         );
     };
 
 
-export const useRoomManager = (): RoomClient => {
-    const meetingManager = useContext(RoomContext);
+export const useRoomManager = (): Room => {
+    const roomManager = useContext(RoomContext);
 
-    if (!meetingManager) {
+    if (!roomManager) {
         throw new Error('useRoomManager must be used within RoomProvider');
     }
 
-    return meetingManager;
+    return roomManager;
 };
