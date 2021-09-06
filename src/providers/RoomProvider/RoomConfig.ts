@@ -30,22 +30,3 @@ export interface RoomConfig {
     handlerName?: BuiltinHandlerName;
     webRTConfig?: RTCConfiguration
 }
-
-export const roomConfigDefault: RoomConfig = {
-    produce: true,
-    consume: true,
-    forceH264: false,
-    forceTcp: false,
-    forceVP9: false,
-    svc: false,
-    useDataChannel: false,
-    useSharingSimulcast: false,
-    useSimulcast: true,
-    displayName: uuidv4(),
-    datachannel: "",
-    resolution: 'hd',
-    muted: false,
-    webcamOnly: false,
-    audioOnly: false,
-    reconnectionTimeout: 1000
-}

@@ -7,7 +7,7 @@ import {RtpCapabilities} from "mediasoup-client/lib/RtpParameters";
 import {TransportOptions} from "mediasoup-client/lib/Transport";
 import {Producer} from "mediasoup-client/lib/Producer";
 import {DataConsumer} from "mediasoup-client/lib/DataConsumer";
-import {DeviceStream, Resolution, RoomConfig, roomConfigDefault} from "./RoomConfig";
+import {DeviceStream, Resolution, RoomConfig} from "./RoomConfig";
 import {Peer, peerEventNames} from "./Peer";
 import {ProducerSoundBrowserForce, uuidv4} from "../../utils/webRTCUtil";
 import {RoomSignal, roomSignalMethods} from "./RoomSignal";
@@ -21,6 +21,7 @@ import {getDevices} from "../../utils/cookieStore";
 import {createPromiseSocket, PromiseSocket} from "../../utils/promiseSocket";
 import {RoomEventsMap} from "./RoomEventsMap";
 import {ActiveSpeaker, RoomNotification} from "./RoomNotification";
+import {ROOM_CONFIG_DEFAULT} from "../../constants/roomConfig";
 
 
 class Room extends StrictEventEmitter<RoomEventsMap> {
@@ -88,7 +89,7 @@ class Room extends StrictEventEmitter<RoomEventsMap> {
     ) {
         super();
         const defaultConfig: RoomConfig = {
-            ...roomConfigDefault,
+            ...ROOM_CONFIG_DEFAULT,
             ...config
         }
 
@@ -777,8 +778,6 @@ class Room extends StrictEventEmitter<RoomEventsMap> {
                     await this.enableWebcam();
             }
         } catch (error) {
-
-            // TODO
             console.log(error)
             this.close();
             return error;
