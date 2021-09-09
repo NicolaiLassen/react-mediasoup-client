@@ -1,6 +1,4 @@
-import {uuidv4} from "../utils/webRTCUtil";
-import {RoomConfig} from "../providers/RoomProvider/RoomConfig";
-
+// Video streaming size navigator
 const VIDEO_CONSTRAINS =
     {
         qvga: {width: {ideal: 320}, height: {ideal: 240}},

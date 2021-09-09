@@ -22,6 +22,8 @@ import {createPromiseSocket, PromiseSocket} from "../../utils/promiseSocket";
 import {RoomEventMap} from "./RoomEventMap";
 import {ActiveSpeaker, RoomNotification} from "./RoomNotification";
 import {ROOM_CONFIG_DEFAULT} from "../../constants/roomConfig";
+import {AudioVideo} from "../AudioVideoProvider/AudioVideo";
+import {Status} from "./Device";
 
 
 class Room extends StrictEventEmitter<RoomEventMap> {
@@ -80,6 +82,7 @@ class Room extends StrictEventEmitter<RoomEventMap> {
     private reconnectionTimeout: number;
 
     private readonly token?: string;
+    selectedVideoInputDevice: string = "";
 
     constructor(url: string,
                 roomId: string,
@@ -789,11 +792,7 @@ class Room extends StrictEventEmitter<RoomEventMap> {
         }
     }
 
-    subscribeToStatus(callback: (status: RoomStatus) => void) {
-    }
-
-    subscribeToAudioVideo(callback: (av: RoomStatus) => void) {
-        // TODO: NAMEING
+    subscribeToAudioVideo(callback: (av: AudioVideo) => void) {
         this.on('audioVideo', callback)
     }
 
@@ -801,7 +800,7 @@ class Room extends StrictEventEmitter<RoomEventMap> {
         this.on('speaker', callback);
     }
 
-    unsubscribeFromAudioVideo(callbackToRemove: (av: RoomStatus) => void) {
+    unsubscribeFromAudioVideo(callbackToRemove: (av: AudioVideo) => void) {
         this.removeListener('audioVideo', callbackToRemove)
     }
 

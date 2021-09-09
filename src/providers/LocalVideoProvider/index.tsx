@@ -2,6 +2,7 @@ import React, {createContext, useCallback, useContext, useEffect, useMemo, useSt
 import {useRoomManager} from "../RoomProvider";
 import {useAudioVideo} from "../AudioVideoProvider";
 import {LocalVideo} from "./LocalVideoProvider";
+import {StreamState} from "../../types/StreamState";
 
 type LocalVideoValue = LocalVideo | null;
 
@@ -11,14 +12,13 @@ const LocalVideoProvider: React.FC = ({children}) => {
     const roomManager = useRoomManager();
     const audioVideo = useAudioVideo()
     const [isVideoEnabled, setIsVideoEnabled] = useState(false);
-    const [tileId, setTileId] = useState<number | null>(null);
+    const [id, setId] = useState<string | null>(null);
 
     useEffect(() => {
         if (!audioVideo) {
             return;
         }
 
-        // TODO
         if (audioVideo.hasStartedLocalVideoTile()) {
             setIsVideoEnabled(true);
         }
@@ -30,13 +30,13 @@ const LocalVideoProvider: React.FC = ({children}) => {
 
     const toggleVideo = useCallback(async (): Promise<void> => {
         if (isVideoEnabled || !roomManager.selectedVideoInputDevice) {
-            audioVideo?.stopLocalVideoTile();
+            audioVideo?.stopLocalVideo();
             setIsVideoEnabled(false);
         } else {
             await audioVideo?.chooseVideoInputDevice(
                 roomManager.selectedVideoInputDevice
             );
-            audioVideo?.startLocalVideoTile();
+            audioVideo?.startLocalVideo();
             setIsVideoEnabled(true);
         }
     }, [audioVideo, isVideoEnabled, roomManager.selectedVideoInputDevice]);
@@ -46,25 +46,24 @@ const LocalVideoProvider: React.FC = ({children}) => {
             return;
         }
 
-        const videoTileDidUpdate = (tileState: VideoTileState) => {
+        const videoDidUpdate = (tileState: StreamState) => {
             if (
-                !tileState.localTile ||
-                !tileState.tileId ||
-                tileId === tileState.tileId
+                !tileState.local ||
+                !tileState.id ||
+                id === tileState.id
             ) {
                 return;
             }
-
-            setTileId(tileState.tileId);
+            setId(tileState.id);
         };
 
         audioVideo.addObserver({
-            videoTileDidUpdate,
+            videoTileDidUpdate: videoDidUpdate,
         });
-    }, [audioVideo, tileId]);
+    }, [audioVideo, id]);
 
-    const value = useMemo(() => ({tileId, isVideoEnabled, setIsVideoEnabled, toggleVideo,}), [
-        tileId,
+    const value = useMemo(() => ({id, isVideoEnabled, setIsVideoEnabled, toggleVideo,}), [
+        id,
         isVideoEnabled,
         setIsVideoEnabled,
         toggleVideo,

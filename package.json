@@ -1,7 +1,7 @@
 {
   "name": "react-mediasoup-client",
   "description": "SFU client SDK - InnoSocial ApS",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "private": false,
   "license": "MIT",
   "author": "Nicolai M. T. Lassen",

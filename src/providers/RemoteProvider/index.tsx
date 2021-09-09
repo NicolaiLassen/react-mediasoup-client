@@ -1,6 +1,6 @@
 import React, {createContext, useContext, useEffect, useReducer} from "react";
 
-import {initialState, reducer, State, VideoTileActionType} from './state';
+import {initialState, reducer, State, TileActionType} from './state';
 import {useAudioVideo} from "../AudioVideoProvider";
 
 const Context = createContext<State | null>(null);
@@ -14,7 +14,7 @@ const RemoteVideoProvider: React.FC = ({children}) => {
         if (!audioVideo) {
             return;
         }
-        return () => dispatch({type: VideoTileActionType.RESET});
+        return () => dispatch({type: TileActionType.RESET});
     }, [audioVideo]);
 
     return <Context.Provider value={state}>{children}</Context.Provider>;

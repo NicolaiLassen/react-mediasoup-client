@@ -1,4 +1,3 @@
-// Default settings for room
 import {RoomConfig} from "../providers/RoomProvider/RoomConfig";
 import {uuidv4} from "../utils/webRTCUtil";
 
@@ -13,7 +12,7 @@ export const ROOM_CONFIG_DEFAULT: RoomConfig = {
     useSharingSimulcast: false,
     useSimulcast: true,
     displayName: uuidv4(),
-    datachannel: "",
+    datachannel: '',
     resolution: 'hd',
     muted: false,
     webcamOnly: false,

@@ -13,14 +13,14 @@ export type State = {
     size: number;
 };
 
-export enum VideoTileActionType {
+export enum TileActionType {
     UPDATE,
     REMOVE,
     RESET,
 }
 
 type UpdateAction = {
-    type: VideoTileActionType.UPDATE;
+    type: TileActionType.UPDATE;
     payload: {
         tileId: number;
         peerId: string;
@@ -28,7 +28,7 @@ type UpdateAction = {
 };
 
 type RemoveAction = {
-    type: VideoTileActionType.REMOVE;
+    type: TileActionType.REMOVE;
     payload: {
         tileId: number;
         peerId?: string;
@@ -36,7 +36,7 @@ type RemoveAction = {
 };
 
 type ResetAction = {
-    type: VideoTileActionType.RESET;
+    type: TileActionType.RESET;
     payload?: any;
 };
 
@@ -59,7 +59,7 @@ export function reducer(state: State, {type, payload}: Action): State {
     const {tiles, tileIdToPeerId, peerIdToTileId, size} = state;
 
     switch (type) {
-        case VideoTileActionType.UPDATE: {
+        case TileActionType.UPDATE: {
             const {tileId, peerId = ''} = payload;
             const tileStr = tileId.toString();
             const isPresent = tileIdToPeerId[tileStr];
@@ -73,6 +73,7 @@ export function reducer(state: State, {type, payload}: Action): State {
                 ...tileIdToPeerId,
                 [tileStr]: peerId,
             };
+
             const peerIds = {
                 ...peerIdToTileId,
                 [peerId]: tileId,
@@ -85,7 +86,7 @@ export function reducer(state: State, {type, payload}: Action): State {
                 size: size + 1,
             };
         }
-        case VideoTileActionType.REMOVE: {
+        case TileActionType.REMOVE: {
             const {tileId} = payload;
             const peerId = tileIdToPeerId[tileId];
             const tileStr = tileId.toString();
@@ -105,7 +106,7 @@ export function reducer(state: State, {type, payload}: Action): State {
                 size: size - 1,
             };
         }
-        case VideoTileActionType.RESET: {
+        case TileActionType.RESET: {
             return initialState;
         }
         default:
