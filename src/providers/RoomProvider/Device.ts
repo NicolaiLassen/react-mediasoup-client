@@ -16,7 +16,6 @@ export enum Status {
     Succeeded,
     Failed,
     Ended,
-    JoinedFromAnotherDevice
 }
 
 export enum DeviceNames {

@@ -1,8 +1,8 @@
 import React, {createContext, useContext, useEffect, useState} from 'react';
 import {useRoomManager} from "../RoomProvider";
-import {ActiveSpeaker} from "./ActiveSpeaker";
+import {ActiveSpeakerPeer} from "./ActiveSpeakerPeer";
 
-type ActiveSpeakerValue = ActiveSpeaker | null;
+type ActiveSpeakerValue = ActiveSpeakerPeer | null;
 
 export const ActiveSpeakerContext = createContext<ActiveSpeakerValue>(null);
 
@@ -10,7 +10,7 @@ const ActiveSpeakerProvider: React.FC = ({children}) => {
     const roomManager = useRoomManager();
     const [activeSpeaker, setActiveSpeaker] = useState<ActiveSpeakerValue>(null);
 
-    const handleActiveSpeaker = (speaker: ActiveSpeaker) => {
+    const handleActiveSpeaker = (speaker: ActiveSpeakerPeer) => {
         setActiveSpeaker(speaker);
     }
 

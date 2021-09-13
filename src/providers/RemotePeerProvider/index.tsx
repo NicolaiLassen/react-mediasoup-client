@@ -5,7 +5,7 @@ import {useAudioVideo} from "../AudioVideoProvider";
 
 const Context = createContext<State | null>(null);
 
-const RemoteVideoProvider: React.FC = ({children}) => {
+const RemotePeerProvider: React.FC = ({children}) => {
 
     const audioVideo = useAudioVideo();
     const [state, dispatch] = useReducer(reducer, initialState);
@@ -20,7 +20,7 @@ const RemoteVideoProvider: React.FC = ({children}) => {
     return <Context.Provider value={state}>{children}</Context.Provider>;
 }
 
-const useRemote = (): State => {
+const useRemotePeers = (): State => {
     const state = useContext(Context);
 
     if (!state) {
@@ -32,4 +32,4 @@ const useRemote = (): State => {
     return state;
 };
 
-export {RemoteVideoProvider, useRemote};
+export {RemotePeerProvider, useRemotePeers};

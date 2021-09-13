@@ -4,7 +4,7 @@ import {AudioVideoProvider} from "../AudioVideoProvider";
 import {LocalVideoProvider} from "../LocalVideoProvider";
 import {RoomConfig} from "./RoomConfig";
 import {ActiveSpeakerProvider} from "../ActiveSpeakerProvider";
-import {RemoteVideoProvider} from "../RemoteProvider";
+import {RemotePeerProvider} from "../RemotePeerProvider";
 import {DevicesProvider} from "../DevicesProvider";
 
 export const RoomContext = createContext<Room | null>(null);
@@ -37,13 +37,13 @@ export const RoomProvider: React.FC<RoomProviderProps> =
             <RoomContext.Provider value={roomClient}>
                 <AudioVideoProvider>
                     <DevicesProvider>
-                        <RemoteVideoProvider>
+                        <RemotePeerProvider>
                             <ActiveSpeakerProvider>
                                 <LocalVideoProvider>
                                     {children}
                                 </LocalVideoProvider>
                             </ActiveSpeakerProvider>
-                        </RemoteVideoProvider>
+                        </RemotePeerProvider>
                     </DevicesProvider>
                 </AudioVideoProvider>
             </RoomContext.Provider>

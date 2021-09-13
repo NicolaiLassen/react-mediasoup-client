@@ -9,7 +9,7 @@ interface GridContext {
 const GridContext = createContext<GridContext | null>(null);
 
 export interface VideoGridProps extends React.HTMLAttributes<HTMLDivElement> {
-    layout?: string;
+    layout?: 'standard' | 'highlighted';
 }
 
 export const VideoGrid: React.FC<VideoGridProps> =

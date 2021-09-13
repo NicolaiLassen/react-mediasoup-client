@@ -1,3 +1,7 @@
+export default interface AudioVideoObserver {
+
+}
+
 export interface AudioVideo {
     addObserver(observer: AudioVideoObserver): void;
 
