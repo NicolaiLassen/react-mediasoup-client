@@ -11,7 +11,7 @@ export type DeviceType = {
     label: string;
 };
 
-export enum Status {
+export enum RoomStatus {
     Loading,
     Succeeded,
     Failed,

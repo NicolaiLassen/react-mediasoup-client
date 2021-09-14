@@ -23,7 +23,7 @@ import {RoomEventMap} from "./RoomEventMap";
 import {ActiveSpeaker, RoomNotification} from "./RoomNotification";
 import {ROOM_CONFIG_DEFAULT} from "../../constants/roomConfig";
 import {AudioVideo} from "../AudioVideoProvider/AudioVideo";
-import {Status} from "./Device";
+import {RoomStatus} from "./Device";
 import {ActiveSpeakerPeer} from "../ActiveSpeakerProvider/ActiveSpeakerPeer";
 
 
@@ -33,7 +33,7 @@ class Room extends StrictEventEmitter<RoomEventMap> {
     readonly peerId: string;
     readonly url: string;
     readonly path: string;
-    roomStatus: Status = Status.Loading;
+    roomStatus: RoomStatus = RoomStatus.Loading;
 
     private socket?: PromiseSocket;
     private sendTransport: types.Transport | null = null;
@@ -129,6 +129,7 @@ class Room extends StrictEventEmitter<RoomEventMap> {
         this.sendTransport?.close();
         this.recvTransport?.close();
         this.emit('close');
+        this.roomStatus = RoomStatus.Ended;
     }
 
     async join() {
@@ -181,7 +182,8 @@ class Room extends StrictEventEmitter<RoomEventMap> {
 
         try {
             this.mediasoupDevice = new Device({handlerName: this.handlerName});
-            const routerRtpCapabilities = await this.socket.emitAsync<RtpCapabilities>(peerEventNames.signal,
+            const routerRtpCapabilities = await this.socket.emitAsync<RtpCapabilities>
+            (peerEventNames.signal,
                 {
                     method: 'getRouterRtpCapabilities'
                 });
@@ -190,7 +192,8 @@ class Room extends StrictEventEmitter<RoomEventMap> {
             await ProducerSoundBrowserForce()
 
             if (this.produce) {
-                const transportOptions = await this.socket.emitAsync<TransportOptions>(peerEventNames.signal,
+                const transportOptions = await this.socket.emitAsync<TransportOptions>
+                (peerEventNames.signal,
                     {
                         method: roomSignalMethods.createWebRtcTransport,
                         forceTcp: this.forceTcp,
@@ -254,7 +257,8 @@ class Room extends StrictEventEmitter<RoomEventMap> {
 
             if (this.consume) {
                 const transportInfo =
-                    await this.socket.emitAsync<TransportOptions>(peerEventNames.signal, {
+                    await this.socket.emitAsync<TransportOptions>
+                    (peerEventNames.signal, {
                         method: roomSignalMethods.createWebRtcTransport,
                         forceTcp: this.forceTcp,
                         producing: false,
@@ -292,7 +296,8 @@ class Room extends StrictEventEmitter<RoomEventMap> {
             }
 
             const peers: Peer[] =
-                await this.socket.emitAsync<Peer[]>(peerEventNames.signal, {
+                await this.socket.emitAsync<Peer[]>
+                (peerEventNames.signal, {
                     method: roomSignalMethods.join,
                     displayName: this.displayName,
                     device: this.mediasoupDevice,
@@ -312,11 +317,12 @@ class Room extends StrictEventEmitter<RoomEventMap> {
                 if (!devicesCookie || devicesCookie.webcamEnabled || this.externalVideo)
                     await this.enableWebcam();
             }
-            this.roomStatus = Status.Succeeded;
+            this.roomStatus = RoomStatus.Succeeded;
+
         } catch (error) {
             console.error(error)
             this.close();
-            this.roomStatus = Status.Failed;
+            this.roomStatus = RoomStatus.Failed;
             return error;
         }
     }
@@ -739,7 +745,7 @@ class Room extends StrictEventEmitter<RoomEventMap> {
 
     // Handle listeners
     subscribeToAudioVideo(callback: (av: AudioVideo) => void) {
-        this.on('audioVideo', callback)
+        this.on('audioVideo', callback);
     }
 
     subscribeToActiveSpeaker(callback: (av: ActiveSpeakerPeer) => void) {
@@ -747,7 +753,7 @@ class Room extends StrictEventEmitter<RoomEventMap> {
     }
 
     unsubscribeFromAudioVideo(callbackToRemove: (av: AudioVideo) => void) {
-        this.removeListener('audioVideo', callbackToRemove)
+        this.removeListener('audioVideo', callbackToRemove);
     }
 
     unsubscribeFromActiveSpeaker(callbackToRemove: (av: ActiveSpeakerPeer) => void) {
